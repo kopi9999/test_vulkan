@@ -3,8 +3,10 @@
 CC = gcc
 LINKERFLAG := -lm
 
-SRCS := main.c
-BINS := main
+SRD := src/
+BD := build/
+SRCS := ${SRD}main.c
+BINS := ${BD}main
 OBJ := main.o
 LIBS:= -lglfw
 
@@ -16,6 +18,7 @@ link:
 	@echo "Linkowanie: "
 	#ld -o ${BINS} ${OBJ} ${LIBS} --verbose
 	${CC} ${LINKERFLAG} ${OBJ} -o ${BINS} ${LIBS} #--verbose
+	rm ${OBJ}
 
 dcompile:
 	@echo "Kompilacja: "
