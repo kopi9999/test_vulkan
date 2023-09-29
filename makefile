@@ -8,7 +8,7 @@ BD := build/
 SRCS := ${SRD}main.c
 BINS := ${BD}main
 OBJ := main.o
-LIBS:= -lglfw
+LIBS:= -lglfw -lvulkan
 
 all: compile link
 
