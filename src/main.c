@@ -44,7 +44,14 @@ void createVulkanInstance() {
 void initVulkan()
 {
 	createVulkanInstance();
-	
+	uint32_t extensionCount = 0;
+	vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
+	VkExtensionProperties extensions[extensionCount];
+	vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensions);
+	printf("Available extensions: %d\nExtension names: ", extensionCount);
+	for(char i = 0; i < extensionCount; i++){
+		printf("%s\n", extensions[i].extensionName);
+	}
 }
 
 void mainLoop()
@@ -56,6 +63,8 @@ void mainLoop()
 
 void cleanup()
 {
+	vkDestroyInstance(instance, NULL);
+
 	glfwDestroyWindow(window);
 
 	glfwTerminate();
