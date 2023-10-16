@@ -12,6 +12,7 @@
 VkInstance instance;
 VkInstanceCreateInfo createInfo;
 VkApplicationInfo appInfo;
+VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
 void createVulkanInstance() 
 {
@@ -67,6 +68,42 @@ char checkValidationLayerSupport()
 	return 0;
 }
 
+void pickPhysicalDevice()
+{
+    int deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
+    if(deviceCount == 0){
+        printf("ERROR: cannot find any graphics card with Vulkan support\n");
+        exit(1);
+    }
+
+    VkPhysicalDevice physicalDevices[deviceCount];
+    vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices);
+
+    for (int i = 0; i < deviceCount; i++) {
+        if (isDeviceSuitable(physicalDevices[i])) {
+            physicalDevice = physicalDevices[i];
+            break;
+        }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE) {
+        printf("ERROR: no graphics cards are supported\n");
+        exit(1);
+    }
+    else{printf("Info: Found a supported graphics card");}
+}
+
+char isDeviceSuitable(VkPhysicalDevice device) {
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+    if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader){return 1;}
+    return 0;
+}
+
 void initVulkan()
 {
 	createVulkanInstance();
@@ -80,4 +117,6 @@ void initVulkan()
 	for(char i = 0; i < extensionCount; i++){
 		printf("%s\n", extensions[i].extensionName);
 	}
+
+    pickPhysicalDevice();
 }

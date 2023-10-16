@@ -23,7 +23,7 @@ link:
 
 dcompile:
 	@echo "Kompilacja: "
-	${CC} -g -c ${SRCS}
+	${CC} -g -c ${SRCS} -I ${HDR}
 
 compile:
 	@echo "Kompilacja: "
