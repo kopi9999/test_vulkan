@@ -5,10 +5,11 @@ LINKERFLAG := -lm
 
 SRD := src/
 BD := build/
-SRCS := ${SRD}main.c
+HDR := header/
+SRCS := ${SRD}main.c ${SRD}window.c ${SRD}vinit.c ${SRD}misc.c
 BINS := ${BD}main
-OBJ := main.o
-LIBS:= -lglfw -lvulkan
+OBJ := main.o window.o vinit.o misc.o
+LIBS:= -lglfw -lvulkan -lc
 
 all: compile link
 
@@ -16,16 +17,17 @@ debug: dcompile link
 
 link:
 	@echo "Linkowanie: "
-	#ld -o ${BINS} ${OBJ} ${LIBS} --verbose
-	${CC} ${LINKERFLAG} ${OBJ} -o ${BINS} ${LIBS} #--verbose
+	#ld -o ${BINS} ${OBJ} ${LIBS} -I ${HDR} --verbose
+	${CC} ${LINKERFLAG} ${OBJ} -o ${BINS} ${LIBS} # -I ${HDR} #--verbose
 	rm ${OBJ}
 
 dcompile:
 	@echo "Kompilacja: "
 	${CC} -g -c ${SRCS}
+
 compile:
 	@echo "Kompilacja: "
-	${CC} -c ${SRCS}
+	${CC} -c ${SRCS} -I ${HDR}
 
 clean:
 	@echo "Usuwanie plików wynikowych"
