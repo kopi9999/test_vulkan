@@ -91,17 +91,36 @@ void pickPhysicalDevice()
         printf("ERROR: no graphics cards are supported\n");
         exit(1);
     }
-    else{printf("Info: Found a supported graphics card");}
+    else{printf("Info: Found a supported graphics card\n");}
 }
 
 char isDeviceSuitable(VkPhysicalDevice device) {
-    VkPhysicalDeviceProperties deviceProperties;
+    /*VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
 
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
     if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader){return 1;}
-    return 0;
+    return 0;*/
+}
+
+char findQueueFamilies(VkPhysicalDevice device, struct QueueFamilyIndices* indices)
+{
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
+
+	VkQueueFamilyProperties queueFamilies[queueFamilyCount];
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
+
+	for(uint32_t i = 0; i < queueFamilyCount; i++){
+		if(queueFamilies[i].queueFlags && VK_QUEUE_GRAPHICS_BIT){
+			indices->graphicsFamily = i;
+			indices->isUsed = 1;
+			break;}
+	}
+
+	if(indices->isUsed){return 1;}
+	return 0;
 }
 
 void initVulkan()
@@ -119,4 +138,14 @@ void initVulkan()
 	}
 
     pickPhysicalDevice();
+
+	struct QueueFamilyIndices indices;
+	indices.isUsed = 0;
+	if(findQueueFamilies(physicalDevice, &indices)){
+		printf("Info: found supported queue family - %d\n", indices.graphicsFamily);
+	}
+	else{
+		printf("ERROR: cannot find a supported queue family");
+		exit(1);
+	}
 }

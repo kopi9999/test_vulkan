@@ -7,6 +7,11 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
+struct QueueFamilyIndices {
+    uint32_t graphicsFamily;
+    char isUsed;
+};
+
 extern VkInstance instance;
 extern VkInstanceCreateInfo createInfo;
 extern VkApplicationInfo appInfo;
@@ -14,7 +19,8 @@ extern VkApplicationInfo appInfo;
 //void createVulkanInstance();
 char checkValidationLayerSupport();
 void initVulkan();
-char isDeviceSuitable(VkPhysicalDevice device);
+char isDeviceSuitable(VkPhysicalDevice);
+char findQueueFamilies(VkPhysicalDevice, struct QueueFamilyIndices*);
 
 #endif
 
