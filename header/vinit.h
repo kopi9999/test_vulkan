@@ -15,6 +15,8 @@ struct QueueFamilyIndices {
 extern VkInstance instance;
 extern VkInstanceCreateInfo createInfo;
 extern VkApplicationInfo appInfo;
+extern VkDevice logicalDevice;
+extern VkQueue graphicsQueue;
 
 //void createVulkanInstance();
 char checkValidationLayerSupport();

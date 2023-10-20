@@ -10,6 +10,7 @@ void mainLoop()
 
 void cleanup()
 {
+	vkDestroyDevice(logicalDevice, NULL);
 	vkDestroyInstance(instance, NULL);
 
 	glfwDestroyWindow(window);

@@ -13,6 +13,8 @@ VkInstance instance;
 VkInstanceCreateInfo createInfo;
 VkApplicationInfo appInfo;
 VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+VkDevice logicalDevice;
+VkQueue graphicsQueue;
 
 void createVulkanInstance() 
 {
@@ -123,6 +125,47 @@ char findQueueFamilies(VkPhysicalDevice device, struct QueueFamilyIndices* indic
 	return 0;
 }
 
+void createLogicalDevice()
+{
+	struct QueueFamilyIndices indices;
+	findQueueFamilies(physicalDevice, &indices);
+
+	VkDeviceQueueCreateInfo queueCreateInfo;
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
+	queueCreateInfo.queueCount = 1;
+	float queuePriority = 1.0;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+
+	VkPhysicalDeviceFeatures deviceFeatures;
+	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+
+	VkDeviceCreateInfo deviceCreateInfo;
+	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+	deviceCreateInfo.queueCreateInfoCount = 1;
+	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+
+	deviceCreateInfo.enabledExtensionCount = 0;
+
+	if (enableValidationLayers) {
+    	deviceCreateInfo.enabledLayerCount = sizeof(validationLayers)/sizeof(validationLayers[0]);
+    	deviceCreateInfo.ppEnabledLayerNames = validationLayers;
+	} else {
+    	deviceCreateInfo.enabledLayerCount = 0;
+	}
+
+	VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, NULL, &logicalDevice);
+
+	if (result != VK_SUCCESS) {
+    	printf("ERROR: failed to create logical device, code: %d\n", result);
+		exit(1);
+	}
+	printf("Info: succesfully created logical device\n");
+	
+	vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+}
+
 void initVulkan()
 {
 	createVulkanInstance();
@@ -148,4 +191,5 @@ void initVulkan()
 		printf("ERROR: cannot find a supported queue family");
 		exit(1);
 	}
+	createLogicalDevice();
 }
