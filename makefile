@@ -9,7 +9,7 @@ HDR := header/
 SRCS := ${SRD}main.c ${SRD}window.c ${SRD}vinit.c ${SRD}misc.c
 BINS := ${BD}main
 OBJ := main.o window.o vinit.o misc.o
-LIBS:= -lglfw -lvulkan -lc
+LIBS:= -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
 
 all: compile link
 

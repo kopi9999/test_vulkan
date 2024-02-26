@@ -2,19 +2,46 @@
 #include "misc.h"
 
 #ifdef DEB
-	const char enableValidationLayers = 1;
 	const char* validationLayers[1] = {"VK_LAYER_KHRONOS_validation"};
+	const uint32_t validationLayerCount = 1;
+	const char* validationExtensions[2] = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME};
+	const uint32_t validationExtensionCount = 2;
 #else
-	const char enableValidationLayers = 0;
     const char* validationLayers[0];
+	const uint32_t validationLayerCount = 0;
+	const char* validationExtensions[0];
+	const uint32_t validationExtensionCount = 0;
 #endif
 
 VkInstance instance;
 VkInstanceCreateInfo createInfo;
 VkApplicationInfo appInfo;
 VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-VkDevice logicalDevice;
+VkDevice logicalDevice = VK_NULL_HANDLE;
 VkQueue graphicsQueue;
+VkDebugUtilsMessengerEXT debugMessenger;
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+
+    printf("validation layer: %s\n", pCallbackData->pMessage);
+
+    return VK_FALSE;
+}
+
+void populateDebugUtilsMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfo){
+	createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo->messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo->pfnUserCallback = debugCallback;
+	createInfo->pUserData = NULL;
+	createInfo->pNext = NULL;
+}
+
+
 
 void createVulkanInstance() 
 {
@@ -23,32 +50,60 @@ void createVulkanInstance()
 		createInfo.enabledLayerCount = 0;
 	}
 	else{
-		createInfo.enabledLayerCount = sizeof(validationLayers)/sizeof(validationLayers[0]);
+		createInfo.enabledLayerCount = validationLayerCount;
 		createInfo.ppEnabledLayerNames = validationLayers;
 		printf("Info: Validation layers enabled\n");
 	}
 
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Hello Triangle";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.pApplicationName = APPLICATION_NAME;
+    appInfo.applicationVersion = APPLICATION_VERSION;
+    appInfo.pEngineName = ENGINE_NAME;
+    appInfo.engineVersion = ENGINE_VERSION;
+    appInfo.apiVersion = API_VERSION;
     
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
 	
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	
+	if(enableValidationLayers){
+		glfwExtensionCount += validationExtensionCount;
+	}
 
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	const char* extensions[glfwExtensionCount];
+
+	if(enableValidationLayers){
+		for (uint32_t i = 0; i < validationExtensionCount; i++){
+			extensions[glfwExtensionCount - validationExtensionCount + i] = validationExtensions[i];
+		}
+	}
+
+	for (uint32_t i = 0; i < glfwExtensionCount - validationExtensionCount; i++){
+		extensions[i] = glfwExtensions[i];
+	}
 
 	createInfo.enabledExtensionCount = glfwExtensionCount;
-	createInfo.ppEnabledExtensionNames = glfwExtensions;
-	
+	createInfo.ppEnabledExtensionNames = extensions;
+
+	if(enableValidationLayers){
+		printf("Available glfw extensions: %d\nExtension names: ", glfwExtensionCount);
+		for(uint32_t i = 0; i < glfwExtensionCount; i++){
+			printf("%s\n", extensions[i]);
+		}
+		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+		populateDebugUtilsMessengerCreateInfo(&debugCreateInfo);
+		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+	}
+	else{
+		createInfo.pNext = NULL;
+	}
+
 	VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
 	
-	if (vkCreateInstance(&createInfo, NULL, &instance) != VK_SUCCESS) {
+	if (result != VK_SUCCESS) {
     	printf("failed to create instance!");
 	}
 }
@@ -128,7 +183,13 @@ char findQueueFamilies(VkPhysicalDevice device, struct QueueFamilyIndices* indic
 void createLogicalDevice()
 {
 	struct QueueFamilyIndices indices;
-	findQueueFamilies(physicalDevice, &indices);
+	if(findQueueFamilies(physicalDevice, &indices)){
+		printf("Info: found supported queue family - %d\n", indices.graphicsFamily);
+	}
+	else{
+		printf("ERROR: cannot find a supported queue family");
+		exit(1);
+	}
 
 	VkDeviceQueueCreateInfo queueCreateInfo;
 	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -136,6 +197,7 @@ void createLogicalDevice()
 	queueCreateInfo.queueCount = 1;
 	float queuePriority = 1.0;
 	queueCreateInfo.pQueuePriorities = &queuePriority;
+	queueCreateInfo.pNext = NULL;
 
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
@@ -147,13 +209,16 @@ void createLogicalDevice()
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
 	deviceCreateInfo.enabledExtensionCount = 0;
+	deviceCreateInfo.ppEnabledExtensionNames = NULL;
 
 	if (enableValidationLayers) {
-    	deviceCreateInfo.enabledLayerCount = sizeof(validationLayers)/sizeof(validationLayers[0]);
+    	deviceCreateInfo.enabledLayerCount = validationLayerCount;
     	deviceCreateInfo.ppEnabledLayerNames = validationLayers;
+
 	} else {
     	deviceCreateInfo.enabledLayerCount = 0;
 	}
+	deviceCreateInfo.pNext = NULL;
 
 	VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, NULL, &logicalDevice);
 
@@ -166,9 +231,52 @@ void createLogicalDevice()
 	vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
 }
 
+void setupDebugMessenger() 
+{
+    if (!enableValidationLayers) return;
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo;
+	populateDebugUtilsMessengerCreateInfo(&createInfo);
+
+	VkResult result = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
+
+	if (result != VK_SUCCESS) {
+    	printf("ERROR: failed to set up debug messenger!: %d\n", result);
+	}
+
+}
+
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
+const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+const VkAllocationCallbacks* pAllocator, 
+VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    
+	VkResult (*func)(VkInstance, const VkDebugUtilsMessengerCreateInfoEXT*, const VkAllocationCallbacks*,VkDebugUtilsMessengerEXT*) = 
+		(PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    
+	if (func != NULL) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+	else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, 
+VkDebugUtilsMessengerEXT debugMessenger, 
+const VkAllocationCallbacks* pAllocator) {
+    void (*func)(VkInstance, VkDebugUtilsMessengerEXT, const VkAllocationCallbacks*) = 
+		(PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    
+	if (func != NULL) {
+        (*func)(instance, debugMessenger, pAllocator);
+    }
+}
+
 void initVulkan()
 {
 	createVulkanInstance();
+	setupDebugMessenger();
 
 	uint32_t extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
@@ -181,15 +289,6 @@ void initVulkan()
 	}
 
     pickPhysicalDevice();
-
-	struct QueueFamilyIndices indices;
-	indices.isUsed = 0;
-	if(findQueueFamilies(physicalDevice, &indices)){
-		printf("Info: found supported queue family - %d\n", indices.graphicsFamily);
-	}
-	else{
-		printf("ERROR: cannot find a supported queue family");
-		exit(1);
-	}
 	createLogicalDevice();
 }
+
