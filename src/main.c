@@ -20,6 +20,7 @@ void cleanup()
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
 	}
 
+	vkDestroySurfaceKHR(instance, surface, NULL);
 	vkDestroyDevice(logicalDevice, NULL);
 	vkDestroyInstance(instance, NULL);
 

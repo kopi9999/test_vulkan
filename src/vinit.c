@@ -1,5 +1,6 @@
 #include "vinit.h"
 #include "misc.h"
+#include "window.h"
 
 #ifdef DEB
 	const char* validationLayers[1] = {"VK_LAYER_KHRONOS_validation"};
@@ -19,8 +20,11 @@ VkApplicationInfo appInfo;
 VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 VkDevice logicalDevice = VK_NULL_HANDLE;
 VkQueue graphicsQueue;
+VkQueue presentationQueue;
 VkDebugUtilsMessengerEXT debugMessenger;
+VkSurfaceKHR surface;
 
+//debug messenger callback:
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -42,7 +46,7 @@ void populateDebugUtilsMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* c
 }
 
 
-
+//instance creation:
 void createVulkanInstance() 
 {
 	if(enableValidationLayers && !checkValidationLayerSupport()){
@@ -125,6 +129,16 @@ char checkValidationLayerSupport()
 	return 0;
 }
 
+//surface creation:
+void createSurface(){
+	
+	if(glfwCreateWindowSurface(instance, window, NULL, &surface) != VK_SUCCESS){
+		printf("ERROR: Cannot create window surface!");
+	}
+	else{printf("Info: successfully created window surface\n");}
+}
+
+// physical device obtain:
 void pickPhysicalDevice()
 {
     int deviceCount = 0;
@@ -161,22 +175,32 @@ char isDeviceSuitable(VkPhysicalDevice device) {
     return 0;*/
 }
 
+//logical device creation and queue finding:
 char findQueueFamilies(VkPhysicalDevice device, struct QueueFamilyIndices* indices)
 {
+	indices->isUsed = 0;
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
 
 	VkQueueFamilyProperties queueFamilies[queueFamilyCount];
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
 
+	VkBool32 presentationSupport;
 	for(uint32_t i = 0; i < queueFamilyCount; i++){
-		if(queueFamilies[i].queueFlags && VK_QUEUE_GRAPHICS_BIT){
+		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentationSupport);
+		if(queueFamilies[i].queueFlags && VK_QUEUE_GRAPHICS_BIT && indices->isUsed != 1){
 			indices->graphicsFamily = i;
-			indices->isUsed = 1;
-			break;}
+			indices->isUsed += 1;
+		}
+		if (presentationSupport && indices->isUsed != 2)
+		{
+			indices->presentationFamily = i;
+			indices->isUsed += 2;
+		}
+		if(indices->isUsed == 3){break;}
 	}
 
-	if(indices->isUsed){return 1;}
+	if(indices->isUsed == 3){return 1;}
 	return 0;
 }
 
@@ -184,28 +208,38 @@ void createLogicalDevice()
 {
 	struct QueueFamilyIndices indices;
 	if(findQueueFamilies(physicalDevice, &indices)){
-		printf("Info: found supported queue family - %d\n", indices.graphicsFamily);
+		printf("Info: found supported queue families - %d, %d\n", indices.graphicsFamily, indices.presentationFamily);
 	}
 	else{
-		printf("ERROR: cannot find a supported queue family");
+		printf("ERROR: cannot find supported queue families\n");
 		exit(1);
 	}
 
-	VkDeviceQueueCreateInfo queueCreateInfo;
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
-	queueCreateInfo.queueCount = 1;
+	char uniqueQueueFamilyCount;
+	if(indices.graphicsFamily == indices.presentationFamily){uniqueQueueFamilyCount = 1;}
+	else{uniqueQueueFamilyCount = 2;}
+	uint32_t uniqueQueueFamilies[uniqueQueueFamilyCount];
+	VkDeviceQueueCreateInfo queueCreateInfo[uniqueQueueFamilyCount];
+	uniqueQueueFamilies[0] = indices.graphicsFamily;
+	if(uniqueQueueFamilyCount-1){uniqueQueueFamilies[1] = indices.presentationFamily;}
+
 	float queuePriority = 1.0;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
-	queueCreateInfo.pNext = NULL;
+	for (char i = 0; i < uniqueQueueFamilyCount; i++){
+		queueCreateInfo[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo[i].queueFamilyIndex = uniqueQueueFamilies[i];
+		queueCreateInfo[i].queueCount = 1;
+		queueCreateInfo[i].pQueuePriorities = &queuePriority;
+		queueCreateInfo[i].flags = NULL;
+		queueCreateInfo[i].pNext = NULL;
+	}
 
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 
 	VkDeviceCreateInfo deviceCreateInfo;
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-	deviceCreateInfo.queueCreateInfoCount = 1;
+	deviceCreateInfo.pQueueCreateInfos = queueCreateInfo;
+	deviceCreateInfo.queueCreateInfoCount = uniqueQueueFamilyCount;
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
 	deviceCreateInfo.enabledExtensionCount = 0;
@@ -218,6 +252,7 @@ void createLogicalDevice()
 	} else {
     	deviceCreateInfo.enabledLayerCount = 0;
 	}
+	deviceCreateInfo.flags = NULL;
 	deviceCreateInfo.pNext = NULL;
 
 	VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, NULL, &logicalDevice);
@@ -229,8 +264,10 @@ void createLogicalDevice()
 	printf("Info: succesfully created logical device\n");
 	
 	vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+	vkGetDeviceQueue(logicalDevice, indices.presentationFamily, 0, &presentationQueue);
 }
 
+//debug messenger setup:
 void setupDebugMessenger() 
 {
     if (!enableValidationLayers) return;
@@ -273,6 +310,7 @@ const VkAllocationCallbacks* pAllocator) {
     }
 }
 
+
 void initVulkan()
 {
 	createVulkanInstance();
@@ -287,6 +325,8 @@ void initVulkan()
 	for(char i = 0; i < extensionCount; i++){
 		printf("%s\n", extensions[i].extensionName);
 	}
+
+	createSurface();
 
     pickPhysicalDevice();
 	createLogicalDevice();

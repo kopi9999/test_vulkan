@@ -6,10 +6,10 @@
 #include <stdlib.h>
 
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
 
 struct QueueFamilyIndices {
     uint32_t graphicsFamily;
+    uint32_t presentationFamily;
     char isUsed;
 };
 
@@ -20,7 +20,9 @@ extern VkInstanceCreateInfo createInfo;
 extern VkApplicationInfo appInfo;
 extern VkDevice logicalDevice;
 extern VkQueue graphicsQueue;
+extern VkQueue presentationQueue;
 extern VkDebugUtilsMessengerEXT debugMessenger;
+extern VkSurfaceKHR surface;
 
 char checkValidationLayerSupport();
 void initVulkan();
@@ -33,5 +35,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 #define ENGINE_NAME "Vulkan test engine"
 #define ENGINE_VERSION VK_MAKE_VERSION(1, 0, 0)
 #define API_VERSION VK_API_VERSION_1_0
+
+#define NUMBER_OF_QUEUE_TYPES 2
 
 #endif
