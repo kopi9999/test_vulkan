@@ -19,7 +19,7 @@ void cleanup()
 	if(enableValidationLayers){
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
 	}
-
+    vkDestroySwapchainKHR(logicalDevice, swapChain, NULL);
 	vkDestroySurfaceKHR(instance, surface, NULL);
 	vkDestroyDevice(logicalDevice, NULL);
 	vkDestroyInstance(instance, NULL);

@@ -23,6 +23,10 @@ extern VkQueue graphicsQueue;
 extern VkQueue presentationQueue;
 extern VkDebugUtilsMessengerEXT debugMessenger;
 extern VkSurfaceKHR surface;
+extern VkSwapchainKHR swapChain;
+extern uint32_t swapChainImageCount;
+extern VkFormat swapChainImageFormat;
+extern VkExtent2D swapChainExtent;
 
 char checkValidationLayerSupport();
 void initVulkan();
