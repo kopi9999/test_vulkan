@@ -16,6 +16,11 @@ void mainLoop()
 
 void cleanup()
 {
+	for(uint32_t i = 0; i < swapChainImageCount; i++){
+		vkDestroyImageView(logicalDevice, swapChainImageViews[i], NULL);
+	}
+	free(swapChainImageViews);
+
 	if(enableValidationLayers){
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
 	}

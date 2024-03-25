@@ -27,6 +27,7 @@ extern VkSwapchainKHR swapChain;
 extern uint32_t swapChainImageCount;
 extern VkFormat swapChainImageFormat;
 extern VkExtent2D swapChainExtent;
+extern VkImageView* swapChainImageViews;
 
 char checkValidationLayerSupport();
 void initVulkan();
