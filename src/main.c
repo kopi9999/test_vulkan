@@ -1,5 +1,6 @@
 #include "window.h"
 #include "vinit.h"
+#include "pipeline.h"
 
 #ifdef DEB
 	const char enableValidationLayers = 1;
@@ -39,6 +40,8 @@ int main()
 {
 	initWindow();
 	initVulkan();
+	createGraphicsPipeline();
+
 	mainLoop();
 	cleanup();
 	printf("yo");

@@ -272,8 +272,8 @@ void createLogicalDevice()
 		queueCreateInfo[i].queueFamilyIndex = uniqueQueueFamilies[i];
 		queueCreateInfo[i].queueCount = 1;
 		queueCreateInfo[i].pQueuePriorities = &queuePriority;
-		queueCreateInfo[i].flags = NULL;
-		queueCreateInfo[i].pNext = NULL;
+        queueCreateInfo[i].flags = 0;
+        queueCreateInfo[i].pNext = NULL;
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures;
@@ -295,7 +295,7 @@ void createLogicalDevice()
 	} else {
     	deviceCreateInfo.enabledLayerCount = 0;
 	}
-	deviceCreateInfo.flags = NULL;
+	deviceCreateInfo.flags = 0;
 	deviceCreateInfo.pNext = NULL;
 
 	VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, NULL, &logicalDevice);
@@ -448,28 +448,13 @@ void createImageViews()
 		createInfo.image = swapChainImages[i];
 		if (vkCreateImageView(logicalDevice, &createInfo, NULL, &swapChainImageViews[i]) != VK_SUCCESS) {
     		printf("ERROR: Failed to create image views!");
-			exit;
+			exit(0);
 		}
 	}
 	printf("info: successfully created all image views\n");
 }
 
 //debug messenger setup:
-void setupDebugMessenger() 
-{
-    if (!enableValidationLayers) return;
-
-	VkDebugUtilsMessengerCreateInfoEXT createInfo;
-	populateDebugUtilsMessengerCreateInfo(&createInfo);
-
-	VkResult result = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
-
-	if (result != VK_SUCCESS) {
-    	printf("ERROR: failed to set up debug messenger!: %d\n", result);
-	}
-
-}
-
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
 const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
 const VkAllocationCallbacks* pAllocator, 
@@ -485,6 +470,21 @@ VkDebugUtilsMessengerEXT* pDebugMessenger)
 	else {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
+}
+
+void setupDebugMessenger() 
+{
+    if (!enableValidationLayers) return;
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo;
+	populateDebugUtilsMessengerCreateInfo(&createInfo);
+
+	VkResult result = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
+
+	if (result != VK_SUCCESS) {
+    	printf("ERROR: failed to set up debug messenger!: %d\n", result);
+	}
+
 }
 
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, 
